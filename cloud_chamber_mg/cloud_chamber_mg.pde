@@ -30,6 +30,10 @@ import com.google.gson.annotations.*;
 
 import processing.video.*; // THIS DUMB ASS LIBRARY CAN'T FIND THE GSTREAMER NONSENSE
 
+//Trying with a hardcoded Res. Laptop - 1366x768
+final int RES_WIDTH = 1366;
+final int RES_HEIGHT = 768;
+
 // Video and Image objects.
 Capture video;
 PImage prev;
@@ -45,7 +49,8 @@ int leftBoundary, rightBoundary;
 int frames, refresh;
 
 void setup() {
-  fullScreen(P2D);
+  size(1366, 768, P2D);
+  // fullScreen(P2D);
   // Check for available devices.
   String[] devices = Capture.list();
   if (devices.length == 0) {
@@ -58,11 +63,11 @@ void setup() {
     }
     // Default Capture device to first device - be aware that this will have issues if there are multiple cameras, e.g. built-in camera versus USB.
     // Constructor: Capture(parent, width, height, device, fps)
-    video = new Capture(this, width, height, devices[0]);
+    video = new Capture(this, RES_WIDTH, RES_HEIGHT, devices[0]);
     video.start();
     // I need this otherwise loadPixels() throws null.
-    prev = createImage(width, height, RGB);
-    data = createImage(width, height, RGB);
+    prev = createImage(RES_WIDTH, RES_HEIGHT, RGB);
+    data = createImage(RES_WIDTH, RES_HEIGHT, RGB);
   }  
   // Control items.
   gui = new LazyGui(this);
@@ -83,15 +88,15 @@ void draw() {
   primaryThreshold = gui.sliderInt("thresholds/primary", 80, 0, 200);
   secondaryThreshold = gui.sliderInt("thresholds/secondary", 80, 0, 200);
   boolean showBoundaries = gui.toggle("thresholds/hide\\/show");
-  leftBoundary = gui.sliderInt("thresholds/left", 500, 0, width/2);
-  rightBoundary = gui.sliderInt("thresholds/right", width/2+500, width/2, width);
+  leftBoundary = gui.sliderInt("thresholds/left", 500, 0, RES_WIDTH/2);
+  rightBoundary = gui.sliderInt("thresholds/right", RES_WIDTH/2+500, RES_WIDTH/2, RES_WIDTH);
   boolean refreshOff = gui.toggle("capture/on\\/off");
   refresh = gui.sliderInt("capture/refresh", 120, 30, 600);
   // Gui button for capturing the current image.
   if (gui.button("capture/manual")) {
     // A fatal error occurs if you do not recreate the Image. I assume it is a memory allocation/corruption issue?
-    prev = createImage(video.width, video.height, RGB);
-    prev.copy(video, 0, 0, video.width, video.height, 0, 0, prev.width, prev.height);
+    // prev = createImage(RES_WIDTH, RES_HEIGHT, RGB);
+    prev.copy(video, 0, 0, RES_WIDTH, RES_HEIGHT, 0, 0, RES_WIDTH, RES_HEIGHT);
     frames = 0;
   }
   
@@ -103,14 +108,14 @@ void draw() {
   
   // Check if data array is the correct size.
   if (data.pixels.length != video.pixels.length) {
-    data.resize(video.width, video.height);
+    data.resize(RES_WIDTH, RES_HEIGHT);
   }
   
   // Loop through all pixels
-  for (int x = 0; x < video.width; x++) {
-    for (int y = 0; y < video.height; y++) {
+  for (int x = 0; x < RES_WIDTH; x++) {
+    for (int y = 0; y < RES_HEIGHT; y++) {
       // Find pixel location in 1D array.
-      int loc = x + (y * video.width);
+      int loc = x + (y * RES_WIDTH);
       // Determine previous color.
       color prevColor = prev.pixels[loc];
       float r2 = red(prevColor);
@@ -147,23 +152,23 @@ void draw() {
   
   // In order for Capture to work P2D, you do this. Don't know why.
   //image(video, 0, 0);
-  image(data, 0, 0, video.width, video.height);
+  image(data, 0, 0, RES_WIDTH, RES_HEIGHT);
   
   // Draw boundary lines for Debug.
   if (showBoundaries) {
     stroke(0,255,0);
-    line(leftBoundary, 0, leftBoundary, height);
-    line(rightBoundary, 0, rightBoundary, height);
+    line(leftBoundary, 0, leftBoundary, RES_HEIGHT);
+    line(rightBoundary, 0, rightBoundary, RES_HEIGHT);
   }
   
   // Debug view of captured "background" and rolling data image.
-  image(prev, 50, height-150, 192, 108);
-  //image(data, 242, height-150, 192, 108);
-  image(video, 242, height-150, 192, 108);
+  image(prev, 50, RES_HEIGHT-150, 192, 108);
+  //image(data, 242, RES_HEIGHT-150, 192, 108);
+  image(video, 242, RES_HEIGHT-150, 192, 108);
   
   if (!refreshOff && frames == refresh) {
-    prev = createImage(video.width, video.height, RGB);
-    prev.copy(video, 0, 0, video.width, video.height, 0, 0, prev.width, prev.height);
+    // prev = createImage(RES_WIDTH, RES_HEIGHT, RGB);
+    prev.copy(video, 0, 0, RES_WIDTH, RES_HEIGHT, 0, 0, RES_WIDTH, RES_HEIGHT);
     frames = 0;
   }
 }

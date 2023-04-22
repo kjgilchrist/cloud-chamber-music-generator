@@ -1,7 +1,7 @@
 /*
 Resources:
 Coding Train - Motion Detection - https://www.youtube.com/watch?v=QLHMtE5XsMs
-ControlP5 - http://wiki.bk.tudelft.nl/toi-pedia/Processing_Buttons_and_Sliders
+LazyGui - https://github.com/KrabCode/LazyGui
 
 Notes:
 Do NOT auto White Balance.
@@ -44,12 +44,24 @@ int frames, refresh;
 
 void setup() {
   fullScreen(P2D);
-  // Default Capture device - be aware that this will have issues if there are multiple cameras, e.g. built-in camera versus USB.
-  video = new Capture(this, width, height);
-  video.start();
-  // May have issues because video isn't loaded!
-  prev = createImage(video.width, video.height, RGB);
-  data = createImage(video.width, video.height, RGB);
+  // Check for available devices.
+  String[] devices = Capture.list();
+  if (devices.length == 0) {
+    println("There are no cameras available for capture.");
+    exit();
+  } else {
+    println("Available cameras:");
+    for (int i = 0; i < devices.length; i++) {
+      println(devices[i]);
+    }
+    // Default Capture device to first device - be aware that this will have issues if there are multiple cameras, e.g. built-in camera versus USB.
+    // Constructor: Capture(parent, width, height, device, fps)
+    video = new Capture(this, width, height, devices[0]);
+    video.start();
+    // I need this otherwise loadPixels() throws null.
+    prev = createImage(width, height, RGB);
+    data = createImage(width, height, RGB);
+  }  
   // Control items.
   gui = new LazyGui(this);
 }
@@ -60,7 +72,11 @@ void captureEvent(Capture video) {
 }
 
 void draw() {
+  // Increment frames for auto-refresh of prev.
   frames++;
+  
+  // Gui folder for changing capture device (if needed). WIP
+  
   // Gui folder and elements for thresholds/boundaries/capture refresh.
   primaryThreshold = gui.sliderInt("thresholds/primary", 80, 0, 200);
   secondaryThreshold = gui.sliderInt("thresholds/secondary", 80, 0, 200);
@@ -129,7 +145,7 @@ void draw() {
   
   // In order for Capture to work P2D, you do this. Don't know why.
   //image(video, 0, 0);
-  image(data, 0, 0, width, height);
+  image(data, 0, 0, video.width, video.height);
   
   // Draw boundary lines for Debug.
   if (showBoundaries) {

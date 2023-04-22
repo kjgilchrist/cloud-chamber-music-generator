@@ -31,8 +31,8 @@ import com.google.gson.annotations.*;
 import processing.video.*; // THIS DUMB ASS LIBRARY CAN'T FIND THE GSTREAMER NONSENSE
 
 //Trying with a hardcoded Res. Laptop - 1366x768
-final int RES_WIDTH = 1366;
-final int RES_HEIGHT = 768;
+final int RES_WIDTH = 1200;
+final int RES_HEIGHT = 675;
 
 // Video and Image objects.
 Capture video;
@@ -49,7 +49,7 @@ int leftBoundary, rightBoundary;
 int frames, refresh;
 
 void setup() {
-  size(1366, 768, P2D);
+  size(1200, 675, P2D);
   // fullScreen(P2D);
   // Check for available devices.
   String[] devices = Capture.list();
@@ -135,7 +135,7 @@ void draw() {
       int modLoc = loc % width;
       if (modLoc >= leftBoundary && modLoc <= rightBoundary) {
         if (d > (secondaryThreshold*secondaryThreshold)) {
-          data.pixels[loc] = int(saturation(currentColor)); //color(255);
+          data.pixels[loc] = currentColor; //color(255);
         } else {
           data.pixels[loc] = color(0);
         }
@@ -177,4 +177,25 @@ void draw() {
 float distSq(float x1, float y1, float z1, float x2, float y2, float z2) {
   float d = (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1) + (z2-z1)*(z2-z1);
   return d; 
+}
+
+class oscRect {
+  // Class variables.
+  int index, rWidth, rHeight;
+  int[] pixel;
+  
+  // Constructor.
+  oscRect (int i, int cols, int rows) {
+    index = i;
+    rWidth = RES_WIDTH / cols;
+    rHeight = RES_HEIGHT / rows;
+    for (int p = 0; p < (rWidth*rHeight); p++) {
+      
+    }
+  }
+  
+  // Functions.
+  void update() {
+    
+  }
 }

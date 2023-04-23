@@ -33,6 +33,13 @@ import processing.video.*; // THIS DUMB ASS LIBRARY CAN'T FIND THE GSTREAMER NON
 //Trying with a hardcoded Res. Laptop - 1366x768
 final int RES_WIDTH = 1200;
 final int RES_HEIGHT = 675;
+// Column Width = 50
+final int NUM_COLS = 24;
+// Row Height = 25
+final int NUM_ROWS = 27;
+
+// Set the brightness threshold for reading pixels within a space.
+int brightThreshold = 150;
 
 // Video and Image objects.
 Capture video;
@@ -47,6 +54,9 @@ int primaryThreshold, secondaryThreshold;
 int leftBoundary, rightBoundary;
 // Time.
 int frames, refresh;
+
+// Array of Objects
+oscRect[] rects;
 
 void setup() {
   size(1200, 675, P2D);
@@ -71,6 +81,18 @@ void setup() {
   }  
   // Control items.
   gui = new LazyGui(this);
+  
+  // Array of Objects.
+  println("Box #: col, row, width, height, startP, numberPix, pix");
+  int numberRects = NUM_COLS*NUM_ROWS;
+  rects = new oscRect[numberRects];
+  for (int i = 0; i < numberRects; i++) {
+    //println("Box #: col, row, width, height, startP, numberPix, pix");
+    rects[i] = new oscRect(i);
+  }
+  
+  // Print Debug
+  println("Resolution: " + RES_WIDTH + " x " + RES_HEIGHT);
 }
 
 // Read video.
@@ -79,6 +101,8 @@ void captureEvent(Capture video) {
 }
 
 void draw() {
+  background(0);
+  
   // Increment frames for auto-refresh of prev.
   frames++;
   
@@ -104,18 +128,20 @@ void draw() {
   video.loadPixels();
   prev.loadPixels();
   data.loadPixels();
-  loadPixels();
+  // loadPixels();
   
   // Check if data array is the correct size.
   if (data.pixels.length != video.pixels.length) {
     data.resize(RES_WIDTH, RES_HEIGHT);
   }
   
-  // Loop through all pixels
-  for (int x = 0; x < RES_WIDTH; x++) {
-    for (int y = 0; y < RES_HEIGHT; y++) {
+  // Loop through all pixels - flipped, move invariants out of inner loop.
+  // Can I just loop through based on length?
+  for (int y = 0; y < RES_HEIGHT; y++) {
+    int vertical = (y * RES_WIDTH);
+    for (int x = 0; x < RES_WIDTH; x++) {
       // Find pixel location in 1D array.
-      int loc = x + (y * RES_WIDTH);
+      int loc = x + vertical;
       // Determine previous color.
       color prevColor = prev.pixels[loc];
       float r2 = red(prevColor);
@@ -133,26 +159,27 @@ void draw() {
       // Check against threshold of difference.
       // Logic for center vs. edge pixels, using % width, due to the extreme lighting variation.
       int modLoc = loc % width;
-      if (modLoc >= leftBoundary && modLoc <= rightBoundary) {
-        if (d > (secondaryThreshold*secondaryThreshold)) {
-          data.pixels[loc] = currentColor; //color(255);
-        } else {
-          data.pixels[loc] = color(0);
-        }
+      if (modLoc >= leftBoundary && modLoc <= rightBoundary && (d > (secondaryThreshold*secondaryThreshold))) {
+        data.pixels[loc] = currentColor;
+      } else if (d > (primaryThreshold*primaryThreshold)) {
+        data.pixels[loc] = currentColor;
       } else {
-        if (d > (primaryThreshold*primaryThreshold)) {
-          data.pixels[loc] = currentColor; //color(255);
-        } else {
-          data.pixels[loc] = color(0);
-        }
+        data.pixels[loc] = color(0);
       }
+      
     }
   }
   data.updatePixels();
   
+  // oscRect Stuff Here
+  for (oscRect oR : rects) {
+    oR.update(data);
+    oR.draw();
+  }
+  
   // In order for Capture to work P2D, you do this. Don't know why.
   //image(video, 0, 0);
-  image(data, 0, 0, RES_WIDTH, RES_HEIGHT);
+  //image(data, 0, 0, RES_WIDTH, RES_HEIGHT);
   
   // Draw boundary lines for Debug.
   if (showBoundaries) {
@@ -161,10 +188,15 @@ void draw() {
     line(rightBoundary, 0, rightBoundary, RES_HEIGHT);
   }
   
-  // Debug view of captured "background" and rolling data image.
-  image(prev, 50, RES_HEIGHT-150, 192, 108);
-  //image(data, 242, RES_HEIGHT-150, 192, 108);
-  image(video, 242, RES_HEIGHT-150, 192, 108);
+  // Debug view of captured "background" and rolling data image, toggled.
+  boolean showImages = gui.toggle("hide\\/show");
+  if (showImages) {
+    image(prev, 50, RES_HEIGHT-150, 192, 108);
+    image(video, 242, RES_HEIGHT-150, 192, 108);
+    image(data, 434, RES_HEIGHT-150, 192, 108);
+  } else {
+    image(video, 0, 0, 0, 0);
+  }
   
   if (!refreshOff && frames == refresh) {
     // prev = createImage(RES_WIDTH, RES_HEIGHT, RGB);
@@ -179,23 +211,74 @@ float distSq(float x1, float y1, float z1, float x2, float y2, float z2) {
   return d; 
 }
 
-class oscRect {
+class oscRect{
   // Class variables.
-  int index, rWidth, rHeight;
-  int[] pixel;
+  int index, row, col, startP;
+  int rWidth, rHeight, numberPix;
+  int brightPix = 0;
+  float size, xCenter, yCenter;
+  int[] pix;
   
   // Constructor.
-  oscRect (int i, int cols, int rows) {
-    index = i;
-    rWidth = RES_WIDTH / cols;
-    rHeight = RES_HEIGHT / rows;
-    for (int p = 0; p < (rWidth*rHeight); p++) {
-      
+  oscRect(int i) {
+    this.index = i;
+    //print("Box " + index + ": [");
+    this.col = (this.index % NUM_COLS) + 1;
+    this.row = ceil(this.index / NUM_COLS) + 1;
+    this.rWidth = RES_WIDTH / NUM_COLS;
+    this.rHeight = RES_HEIGHT / NUM_ROWS;
+    this.startP = ((this.row - 1)*(RES_WIDTH * this.rHeight)) + ((this.col - 1)*(this.rWidth));
+    this.numberPix = this.rWidth*this.rHeight;
+    this.pix = new int[this.numberPix];
+    //println(pix.length);
+    int p = 0;
+    for (int r = 0; r < this.rHeight; r++) {
+      int horizontal = r * RES_WIDTH;
+      for (int c = 0; c < this.rWidth; c++) {
+        int pixLoc = this.startP + horizontal + c;
+        //print(pixLoc, ", ");
+        this.pix[p] = pixLoc;
+        //print(this.pix[p] + ", ");
+        p++;
+      }
     }
+    //println("]");
+    this.xCenter = (this.col - 1)*this.rWidth + (this.rWidth/2);
+    this.yCenter = (this.row - 1)*this.rHeight + (this.rHeight/2);
+    //print("Box " + this.index + ": " + this.xCenter + ", " + this.yCenter);
   }
   
   // Functions.
-  void update() {
-    
+  void update(PImage image) {
+    // Reset size to zero, update based on new pixels.
+    //println(image.pixels.length);
+    this.brightPix = 0;
+    for (int p = 0; p < pix.length; p++) {
+      int imgIndex = pix[p];
+      //print(pix[p] + ", ");
+      color imgPix = image.pixels[imgIndex];
+      int isBright = int(brightness(imgPix));
+      //println(isBright);
+      if (isBright > brightThreshold) {
+        // Increment size for each bright pixel.
+        this.brightPix++;
+      }
+    }
+    this.size = brightPix / 25;
+    //print("BP: " + brightPix);
+    //println();
   }
+  
+  void draw() {
+    // Based on rolling size, draw something.
+    // Text for size value - waaay too much text.
+    //fill(255, 0, 0);
+    //text(size, xCenter, yCenter);
+    // Constructor: ellipse(x_center, y_center, width, height)
+    noStroke();
+    fill(255);
+    ellipseMode(CENTER);
+    ellipse(this.xCenter, this.yCenter, this.size, this.size);
+  }
+  
 }

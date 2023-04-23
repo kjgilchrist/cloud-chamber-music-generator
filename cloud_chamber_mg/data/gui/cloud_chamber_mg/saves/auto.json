@@ -745,12 +745,6 @@
           "type": "FOLDER"
         }
       ],
-      "window": {
-        "posX": 242.0,
-        "posY": 22.0,
-        "closed": true,
-        "windowSizeX": 198.0
-      },
       "className": "FolderNode",
       "path": "options",
       "type": "FOLDER"
@@ -805,6 +799,11 @@
           "className": "FolderNode",
           "path": "saves/autosave rules",
           "type": "FOLDER"
+        },
+        {
+          "className": "SaveItemNode",
+          "path": "saves/auto",
+          "type": "TRANSIENT"
         }
       ],
       "className": "SaveFolderNode",
@@ -814,7 +813,7 @@
     {
       "children": [
         {
-          "valueFloat": 80.0,
+          "valueFloat": 20.0,
           "currentPrecisionIndex": 4,
           "valueFloatPrecision": 1.0,
           "className": "SliderIntNode",
@@ -822,7 +821,7 @@
           "type": "VALUE"
         },
         {
-          "valueFloat": 80.0,
+          "valueFloat": 10.0,
           "currentPrecisionIndex": 4,
           "valueFloatPrecision": 1.0,
           "className": "SliderIntNode",
@@ -836,7 +835,7 @@
           "type": "VALUE"
         },
         {
-          "valueFloat": 500.0,
+          "valueFloat": 400.0,
           "currentPrecisionIndex": 4,
           "valueFloatPrecision": 1.0,
           "className": "SliderIntNode",
@@ -844,7 +843,7 @@
           "type": "VALUE"
         },
         {
-          "valueFloat": 1183.0,
+          "valueFloat": 800.0,
           "currentPrecisionIndex": 4,
           "valueFloatPrecision": 1.0,
           "className": "SliderIntNode",
@@ -852,12 +851,6 @@
           "type": "VALUE"
         }
       ],
-      "window": {
-        "posX": 242.0,
-        "posY": 22.0,
-        "closed": true,
-        "windowSizeX": 176.0
-      },
       "className": "FolderNode",
       "path": "thresholds",
       "type": "FOLDER"
@@ -865,7 +858,7 @@
     {
       "children": [
         {
-          "valueBoolean": false,
+          "valueBoolean": true,
           "className": "ToggleNode",
           "path": "capture/on\\/off",
           "type": "VALUE"
@@ -884,16 +877,28 @@
           "type": "TRANSIENT"
         }
       ],
+      "window": {
+        "posX": 264.0,
+        "posY": 22.0,
+        "closed": false,
+        "windowSizeX": 132.0
+      },
       "className": "FolderNode",
       "path": "capture",
       "type": "FOLDER"
+    },
+    {
+      "valueBoolean": false,
+      "className": "ToggleNode",
+      "path": "hide\\/show",
+      "type": "VALUE"
     }
   ],
   "window": {
     "posX": 22.0,
     "posY": 22.0,
     "closed": false,
-    "windowSizeX": 198.0
+    "windowSizeX": 220.0
   },
   "className": "FolderNode",
   "path": "",

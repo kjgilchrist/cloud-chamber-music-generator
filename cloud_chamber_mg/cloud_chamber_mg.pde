@@ -6,7 +6,7 @@ LazyGui - https://github.com/KrabCode/LazyGui
 Good Lord help: https://groups.google.com/g/gstreamer-java/c/gKsEB8wjcxI
 
 Notes:
-Do NOT auto White Balance.
+Do NOT auto White Balance on Camera settings.
 */
 
 // Libs
@@ -28,9 +28,12 @@ import com.google.gson.internal.bind.util.*;
 import com.google.gson.internal.sql.*;
 import com.google.gson.annotations.*;
 
-import processing.video.*; // THIS DUMB ASS LIBRARY CAN'T FIND THE GSTREAMER NONSENSE
+// Warning: Cannot find gstcairo.dll
+import processing.video.*;
+import processing.sound.*;
 
-//Trying with a hardcoded Res. Laptop - 1366x768
+// Trying with a hardcoded resolution.
+// Res. PC - 1920x1080, Laptop - 1366x768
 final int RES_WIDTH = 1200;
 final int RES_HEIGHT = 675;
 // Column Width = 100
@@ -38,30 +41,36 @@ final int NUM_COLS = 12;
 // Row Height = 75
 final int NUM_ROWS = 9;
 
-// Set the brightness threshold for reading pixels within a space.
-int brightThreshold = 150;
-
 // Video and Image objects.
 Capture video;
 PImage prev;
 PImage data;
-// Controller objects.
-LazyGui gui;
 
+// Array of Objects/Oscillators
+oscRect[] rects;
+SinOsc[] osc;
+Env[] env;
+Reverb reverb;
+boolean isPlaying;
+
+// Controller objects and variables.
+LazyGui gui;
 // Threshold for pixel change, as slider values.
 int primaryThreshold, secondaryThreshold;
 // Threshold wall boundaries, as slider values.
 int leftBoundary, rightBoundary;
-// Time.
-int frames, refresh;
+// Brightness threshold for reading pixels within a space.
+int brightThreshold;
 
-// Array of Objects
-oscRect[] rects;
+// Time related variables.
+int oscFrames, reFrames, refresh;
+
 
 void settings() {
   // This runs before setup.
   size(1200, 675, P2D);
 }
+
 
 void setup() {
   // Check for available devices.
@@ -89,43 +98,53 @@ void setup() {
   println("Box #: col, row, width, height, startP, numberPix, pix");
   int numberRects = NUM_COLS*NUM_ROWS;
   rects = new oscRect[numberRects];
+  osc = new SinOsc[numberRects];
+  env = new Env[numberRects];
   for (int i = 0; i < numberRects; i++) {
     //println("Box #: col, row, width, height, startP, numberPix, pix");
+    // Oscillators must be initialized before the rects.
+    osc[i] = new SinOsc(this);
     rects[i] = new oscRect(i);
+    env[i] = new Env(this);
   }
+  // Filter
+  reverb = new Reverb(this);
+  
+  reFrames = 0;
+  oscFrames = 0;
   
   // Print Debug
   println("Resolution: " + RES_WIDTH + " x " + RES_HEIGHT);
 }
+
 
 // Read video.
 void captureEvent(Capture video) {
   video.read();
 }
 
+
 void draw() {
   background(0);
   
-  // Increment frames for auto-refresh of prev.
-  frames++;
-  
-  // Gui folder for changing capture device (if needed). WIP
-  
-  // Gui folder and elements for thresholds/boundaries/capture refresh.
+  // Gui folder and elements for thresholds/boundaries/capture refresh/etc.
   primaryThreshold = gui.sliderInt("thresholds/primary", 80, 0, 200);
   secondaryThreshold = gui.sliderInt("thresholds/secondary", 80, 0, 200);
-  boolean showBoundaries = gui.toggle("thresholds/hide\\/show");
+  boolean showBoundaries = gui.toggle("thresholds/hide\\/thresh");
   leftBoundary = gui.sliderInt("thresholds/left", 500, 0, RES_WIDTH/2);
   rightBoundary = gui.sliderInt("thresholds/right", RES_WIDTH/2+500, RES_WIDTH/2, RES_WIDTH);
-  boolean refreshOff = gui.toggle("capture/on\\/off");
+  boolean refreshOff = gui.toggle("capture/auto\\/off");
   refresh = gui.sliderInt("capture/refresh", 120, 30, 600);
+  brightThreshold = gui.sliderInt("visual/brightness", 100, 0, 255);
   // Gui button for capturing the current image.
   if (gui.button("capture/manual")) {
     // A fatal error occurs if you do not recreate the Image. I assume it is a memory allocation/corruption issue?
     // prev = createImage(RES_WIDTH, RES_HEIGHT, RGB);
     prev.copy(video, 0, 0, RES_WIDTH, RES_HEIGHT, 0, 0, RES_WIDTH, RES_HEIGHT);
-    frames = 0;
+    reFrames = 0;
   }
+  // Toggle sound on/off.
+  isPlaying = gui.toggle("music\\/off");
   
   // Load the pixels of each image/video/AND THE WINDOW.
   video.loadPixels();
@@ -168,15 +187,16 @@ void draw() {
   }
   data.updatePixels();
   
-  // oscRect Stuff Here
+  // oscRect draw every frame.
   for (oscRect oR : rects) {
-    oR.update(data);
+    if ((oscFrames % 4) == 3) {
+      oR.update(data);
+    }
     oR.draw();
     if (gui.toggle("visual/off\\/boxes")) {
       oR.drawBox();
     }
   }
-  
   // In order for Capture to work P2D, you do this. Don't know why.
   //image(video, 0, 0);
   //image(data, 0, 0, RES_WIDTH, RES_HEIGHT);
@@ -189,7 +209,7 @@ void draw() {
   }
   
   // Debug view of captured "background" and rolling data image, toggled.
-  boolean showImages = gui.toggle("hide\\/show");
+  boolean showImages = gui.toggle("hide\\/videos");
   if (showImages) {
     image(prev, 50, RES_HEIGHT-150, 192, 108);
     image(video, 242, RES_HEIGHT-150, 192, 108);
@@ -198,12 +218,17 @@ void draw() {
     image(video, 0, 0, 0, 0);
   }
   
-  if (!refreshOff && frames == refresh) {
+  if (!refreshOff && reFrames == refresh) {
     // prev = createImage(RES_WIDTH, RES_HEIGHT, RGB);
     prev.copy(video, 0, 0, RES_WIDTH, RES_HEIGHT, 0, 0, RES_WIDTH, RES_HEIGHT);
-    frames = 0;
+    reFrames = 0;
   }
+  
+  // Increment frames for auto-refresh, osc.
+  reFrames++;
+  oscFrames++;
 }
+
 
 // Function for the distance squared, for comparison against threshold squared.
 float distSq(float x1, float y1, float z1, float x2, float y2, float z2) {
@@ -211,16 +236,19 @@ float distSq(float x1, float y1, float z1, float x2, float y2, float z2) {
   return d; 
 }
 
+
 class oscRect{
   // Class variables.
   int brightPix = 0;
-  float size, xCenter, yCenter;
-  int rWidth, rHeight;
+  float prevSize, size, xCenter, yCenter;
+  int index, rWidth, rHeight;
   int[] pix;
+  float amp, freq;
   
   // Constructor.
   oscRect(int i) {
     //print("Box " + index + ": [");
+    this.index = i;
     int col = (i % NUM_COLS) + 1;
     int row = ceil(i / NUM_COLS) + 1;
     this.rWidth = RES_WIDTH / NUM_COLS;
@@ -244,12 +272,33 @@ class oscRect{
     this.xCenter = (col - 1)*this.rWidth + (this.rWidth/2);
     this.yCenter = (row - 1)*this.rHeight + (this.rHeight/2);
     //print("Box " + this.index + ": " + this.xCenter + ", " + this.yCenter);
+    // Associated
+    this.amp = (row * 0.0003);
+    this.freq = findFreq(col);
+    osc[this.index].amp(this.amp);
+  }
+  
+  float findFreq(int col) {
+    // Default to middle C, if issue.
+    float f = 261.63;
+    int add = col % 3;
+    if (this.index < 4) {
+      f = 65.406 + (add * 16.3);
+    } else if (this.index < 7) {
+      f = 130.81 + (add * 32.6);
+    } else if (this.index < 10) {
+      f = f + 65.2;
+    } else {
+      f = 523.25 + (add * 125.9);
+    }
+    return f;
   }
   
   // Functions.
   void update(PImage image) {
     // Reset size to zero, update based on new pixels.
     //println(image.pixels.length);
+    this.prevSize = this.brightPix / 100;
     this.brightPix = 0;
     for (int p = 0; p < pix.length; p++) {
       int imgIndex = pix[p];
@@ -262,7 +311,7 @@ class oscRect{
         this.brightPix++;
       }
     }
-    this.size = brightPix / 100;
+    this.size = this.brightPix / 100;
     //print("BP: " + brightPix);
     //println();
   }
@@ -273,10 +322,20 @@ class oscRect{
     //fill(255, 0, 0);
     //text(size, xCenter, yCenter);
     // Constructor: ellipse(x_center, y_center, width, height)
-    noStroke();
-    fill(255);
-    ellipseMode(CENTER);
-    ellipse(this.xCenter, this.yCenter, this.size, this.size);
+    if (this.size > 0 && this.size != this.prevSize) {
+      noStroke();
+      fill(255);
+      ellipseMode(CENTER);
+      ellipse(this.xCenter, this.yCenter, this.size, this.size);
+      if (!isPlaying) {
+        osc[this.index].play();
+        osc[this.index].freq(this.freq);
+        // AttackTime - SustainTime - SustainLevel - ReleaseTime
+        env[this.index].play(osc[this.index], 0.001, 0.004, 0.3, 0.4);
+      } else if (osc[this.index].isPlaying()) {
+        osc[this.index].stop();
+      }
+    }
   }
   
   void drawBox() {

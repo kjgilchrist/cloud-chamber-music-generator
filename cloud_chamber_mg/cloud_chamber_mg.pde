@@ -125,7 +125,7 @@ void captureEvent(Capture video) {
 
 
 void draw() {
-  background(0);
+  //background(0);
   
   // Gui folder and elements for thresholds/boundaries/capture refresh/etc.
   primaryThreshold = gui.sliderInt("thresholds/primary", 80, 0, 200);
@@ -187,6 +187,8 @@ void draw() {
   }
   data.updatePixels();
   
+  image(video, 0, 0);
+  
   // oscRect draw every frame.
   for (oscRect oR : rects) {
     if ((oscFrames % 4) == 3) {
@@ -212,11 +214,12 @@ void draw() {
   boolean showImages = gui.toggle("hide\\/videos");
   if (showImages) {
     image(prev, 50, RES_HEIGHT-150, 192, 108);
-    image(video, 242, RES_HEIGHT-150, 192, 108);
-    image(data, 434, RES_HEIGHT-150, 192, 108);
-  } else {
-    image(video, 0, 0, 0, 0);
+    image(data, 242, RES_HEIGHT-150, 192, 108);
+    //image(video, 434, RES_HEIGHT-150, 192, 108);
   }
+  //} else {
+  //  image(video, 0, 0, 0, 0);
+  //}
   
   if (!refreshOff && reFrames == refresh) {
     // prev = createImage(RES_WIDTH, RES_HEIGHT, RGB);

@@ -877,14 +877,21 @@
           "type": "TRANSIENT"
         }
       ],
-      "window": {
-        "posX": 264.0,
-        "posY": 22.0,
-        "closed": false,
-        "windowSizeX": 132.0
-      },
       "className": "FolderNode",
       "path": "capture",
+      "type": "FOLDER"
+    },
+    {
+      "children": [
+        {
+          "valueBoolean": true,
+          "className": "ToggleNode",
+          "path": "visual/off\\/boxes",
+          "type": "VALUE"
+        }
+      ],
+      "className": "FolderNode",
+      "path": "visual",
       "type": "FOLDER"
     },
     {

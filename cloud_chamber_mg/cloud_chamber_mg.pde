@@ -33,10 +33,10 @@ import processing.video.*; // THIS DUMB ASS LIBRARY CAN'T FIND THE GSTREAMER NON
 //Trying with a hardcoded Res. Laptop - 1366x768
 final int RES_WIDTH = 1200;
 final int RES_HEIGHT = 675;
-// Column Width = 50
-final int NUM_COLS = 24;
-// Row Height = 25
-final int NUM_ROWS = 27;
+// Column Width = 100
+final int NUM_COLS = 12;
+// Row Height = 75
+final int NUM_ROWS = 9;
 
 // Set the brightness threshold for reading pixels within a space.
 int brightThreshold = 150;
@@ -58,9 +58,12 @@ int frames, refresh;
 // Array of Objects
 oscRect[] rects;
 
-void setup() {
+void settings() {
+  // This runs before setup.
   size(1200, 675, P2D);
-  // fullScreen(P2D);
+}
+
+void setup() {
   // Check for available devices.
   String[] devices = Capture.list();
   if (devices.length == 0) {
@@ -137,36 +140,30 @@ void draw() {
   
   // Loop through all pixels - flipped, move invariants out of inner loop.
   // Can I just loop through based on length?
-  for (int y = 0; y < RES_HEIGHT; y++) {
-    int vertical = (y * RES_WIDTH);
-    for (int x = 0; x < RES_WIDTH; x++) {
-      // Find pixel location in 1D array.
-      int loc = x + vertical;
-      // Determine previous color.
-      color prevColor = prev.pixels[loc];
-      float r2 = red(prevColor);
-      float g2 = green(prevColor);
-      float b2 = blue(prevColor);
-      // Determine current color of that pixel.
-      color currentColor = video.pixels[loc];
-      float r1 = red(currentColor);
-      float g1 = green(currentColor);
-      float b1 = blue(currentColor);
-      
-      // Calculate the "difference" - distance in RGB space.
-      float d = distSq(r1, g1, b1, r2, g2, b2);
-      
-      // Check against threshold of difference.
-      // Logic for center vs. edge pixels, using % width, due to the extreme lighting variation.
-      int modLoc = loc % width;
-      if (modLoc >= leftBoundary && modLoc <= rightBoundary && (d > (secondaryThreshold*secondaryThreshold))) {
-        data.pixels[loc] = currentColor;
-      } else if (d > (primaryThreshold*primaryThreshold)) {
-        data.pixels[loc] = currentColor;
-      } else {
-        data.pixels[loc] = color(0);
-      }
-      
+  for (int i = 0; i < video.pixels.length; i++) {
+    // Determine previous color.
+    color prevColor = prev.pixels[i];
+    float r2 = red(prevColor);
+    float g2 = green(prevColor);
+    float b2 = blue(prevColor);
+    // Determine current color of that pixel.
+    color currentColor = video.pixels[i];
+    float r1 = red(currentColor);
+    float g1 = green(currentColor);
+    float b1 = blue(currentColor);
+    
+    // Calculate the "difference" - distance in RGB space.
+    float d = distSq(r1, g1, b1, r2, g2, b2);
+    
+    // Check against threshold of difference.
+    // Logic for center vs. edge pixels, using % width, due to the extreme lighting variation.
+    int modLoc = i % width;
+    if (modLoc <= leftBoundary && modLoc >= rightBoundary && (d > (primaryThreshold*primaryThreshold))) {
+      data.pixels[i] = currentColor;
+    } else if (d > (secondaryThreshold*secondaryThreshold)) {
+      data.pixels[i] = currentColor;
+    } else {
+      data.pixels[i] = color(0);
     }
   }
   data.updatePixels();
@@ -175,6 +172,9 @@ void draw() {
   for (oscRect oR : rects) {
     oR.update(data);
     oR.draw();
+    if (gui.toggle("visual/off\\/boxes")) {
+      oR.drawBox();
+    }
   }
   
   // In order for Capture to work P2D, you do this. Don't know why.
@@ -213,29 +213,27 @@ float distSq(float x1, float y1, float z1, float x2, float y2, float z2) {
 
 class oscRect{
   // Class variables.
-  int index, row, col, startP;
-  int rWidth, rHeight, numberPix;
   int brightPix = 0;
   float size, xCenter, yCenter;
+  int rWidth, rHeight;
   int[] pix;
   
   // Constructor.
   oscRect(int i) {
-    this.index = i;
     //print("Box " + index + ": [");
-    this.col = (this.index % NUM_COLS) + 1;
-    this.row = ceil(this.index / NUM_COLS) + 1;
+    int col = (i % NUM_COLS) + 1;
+    int row = ceil(i / NUM_COLS) + 1;
     this.rWidth = RES_WIDTH / NUM_COLS;
     this.rHeight = RES_HEIGHT / NUM_ROWS;
-    this.startP = ((this.row - 1)*(RES_WIDTH * this.rHeight)) + ((this.col - 1)*(this.rWidth));
-    this.numberPix = this.rWidth*this.rHeight;
-    this.pix = new int[this.numberPix];
+    int startP = ((row - 1)*(RES_WIDTH * this.rHeight)) + ((col - 1)*(this.rWidth));
+    int numberPix = this.rWidth*this.rHeight;
+    this.pix = new int[numberPix];
     //println(pix.length);
     int p = 0;
-    for (int r = 0; r < this.rHeight; r++) {
+    for (int r = 0; r < rHeight; r++) {
       int horizontal = r * RES_WIDTH;
       for (int c = 0; c < this.rWidth; c++) {
-        int pixLoc = this.startP + horizontal + c;
+        int pixLoc = startP + horizontal + c;
         //print(pixLoc, ", ");
         this.pix[p] = pixLoc;
         //print(this.pix[p] + ", ");
@@ -243,8 +241,8 @@ class oscRect{
       }
     }
     //println("]");
-    this.xCenter = (this.col - 1)*this.rWidth + (this.rWidth/2);
-    this.yCenter = (this.row - 1)*this.rHeight + (this.rHeight/2);
+    this.xCenter = (col - 1)*this.rWidth + (this.rWidth/2);
+    this.yCenter = (row - 1)*this.rHeight + (this.rHeight/2);
     //print("Box " + this.index + ": " + this.xCenter + ", " + this.yCenter);
   }
   
@@ -264,7 +262,7 @@ class oscRect{
         this.brightPix++;
       }
     }
-    this.size = brightPix / 25;
+    this.size = brightPix / 100;
     //print("BP: " + brightPix);
     //println();
   }
@@ -279,6 +277,13 @@ class oscRect{
     fill(255);
     ellipseMode(CENTER);
     ellipse(this.xCenter, this.yCenter, this.size, this.size);
+  }
+  
+  void drawBox() {
+    stroke(0,0,255);
+    noFill();
+    rectMode(CENTER);
+    rect(this.xCenter, this.yCenter, this.rWidth, this.rHeight);
   }
   
 }

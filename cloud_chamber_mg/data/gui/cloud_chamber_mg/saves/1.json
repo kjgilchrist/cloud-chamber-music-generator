@@ -809,11 +809,6 @@
           "className": "SaveItemNode",
           "path": "saves/auto",
           "type": "TRANSIENT"
-        },
-        {
-          "className": "SaveItemNode",
-          "path": "saves/1",
-          "type": "TRANSIENT"
         }
       ],
       "window": {
@@ -867,6 +862,12 @@
           "type": "VALUE"
         }
       ],
+      "window": {
+        "posX": 264.0,
+        "posY": 22.0,
+        "closed": true,
+        "windowSizeX": 176.0
+      },
       "className": "FolderNode",
       "path": "thresholds",
       "type": "FOLDER"
@@ -896,7 +897,7 @@
       "window": {
         "posX": 264.0,
         "posY": 22.0,
-        "closed": false,
+        "closed": true,
         "windowSizeX": 154.0
       },
       "className": "FolderNode",
@@ -906,7 +907,7 @@
     {
       "children": [
         {
-          "valueFloat": 85.0,
+          "valueFloat": 20.0,
           "currentPrecisionIndex": 4,
           "valueFloatPrecision": 1.0,
           "className": "SliderIntNode",
@@ -923,8 +924,8 @@
       "window": {
         "posX": 264.0,
         "posY": 22.0,
-        "closed": false,
-        "windowSizeX": 176.0
+        "closed": true,
+        "windowSizeX": 154.0
       },
       "className": "FolderNode",
       "path": "visual",

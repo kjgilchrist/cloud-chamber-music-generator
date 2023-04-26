@@ -278,7 +278,6 @@ class oscRect{
     // Associated
     this.amp = (row * 0.0003);
     this.freq = findFreq(col);
-    osc[this.index].amp(this.amp);
   }
   
   float findFreq(int col) {
@@ -332,6 +331,7 @@ class oscRect{
       ellipse(this.xCenter, this.yCenter, this.size, this.size);
       if (!isPlaying) {
         osc[this.index].play();
+        osc[this.index].amp(this.amp);
         osc[this.index].freq(this.freq);
         // AttackTime - SustainTime - SustainLevel - ReleaseTime
         env[this.index].play(osc[this.index], 0.001, 0.004, 0.3, 0.4);
